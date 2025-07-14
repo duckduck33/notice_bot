@@ -1,0 +1,18 @@
+# Python virtual environment
+venv/
+.venv/
+my_project_env/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+
+# Editor files
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db

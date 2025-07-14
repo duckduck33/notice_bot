@@ -1,0 +1,16 @@
+{
+  "id": "5183",
+  "title": "라이브피어(LPT)(KRW, USDT 마켓), 포켓네트워크(POKT)(KRW 마켓) 디지털 자산 추가",
+  "listed_at": "2025-05-30T12:15:00+09:00",
+  "first_listed_at": "2025-05-30T12:15:00+09:00",
+  "assets": [
+    {
+      "asset": "LPT",
+      "trade_time": "5월 30일 17시 예정"
+    },
+    {
+      "asset": "POKT",
+      "trade_time": "5월 30일 19시 예정"
+    }
+  ]
+}
