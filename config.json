@@ -5,5 +5,7 @@
     "신규 거래지원 안내",
     "디지털 자산 추가"
   ],
-  "krw_only_for_add": true
+  "warn_keywords": [
+    "거래 유의 종목"
+  ]
 }
