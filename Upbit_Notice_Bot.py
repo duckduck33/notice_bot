@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import time
 import random
 import cloudscraper
-print("=== 업비트 공지모니터링봇 실행 시작 ===")
+print("=== 업비트 공지모니터링봇 실행 시작1 ===")
 
 # ====== 텔레그램 정보 ======
 TELEGRAM_BOT_TOKEN = "7578590641:AAEiftqs1sHKPS2FMNUpODSRkXC_6Yr51Wc"
