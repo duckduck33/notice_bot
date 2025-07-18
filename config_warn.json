@@ -1,0 +1,7 @@
+{
+  "min_interval": 3,
+  "max_interval": 10,
+  "warn_keywords": [
+    "거래 유의 종목"
+  ]
+}
