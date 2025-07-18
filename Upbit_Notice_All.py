@@ -366,10 +366,10 @@ def run_api():
 # ====== 메인 루프 ======
 if __name__ == "__main__":
 
-    import os
+    # import os
 
-    print("last_notice_warn.json 실제 경로:", os.path.abspath(LAST_NOTICE_WARN_PATH))
-    print("존재 여부:", os.path.exists(LAST_NOTICE_WARN_PATH))
+    # print("last_notice_warn.json 실제 경로:", os.path.abspath(LAST_NOTICE_WARN_PATH))
+    # print("존재 여부:", os.path.exists(LAST_NOTICE_WARN_PATH))
 
     threading.Thread(target=run_api, daemon=True).start()
     send_telegram_message("📡 <b>업비트 상장/유의 공지 통합 감시봇 시작합니다</b>", chat_id=ADMIN_CHAT_ID)
