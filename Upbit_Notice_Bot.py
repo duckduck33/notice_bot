@@ -7,7 +7,10 @@ from datetime import datetime, timedelta
 import time
 import random
 import cloudscraper
-print("=== 업비트 공지모니터링봇 실행 시작1 ===")
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import threading
 
 # ====== 텔레그램 정보 ======
 TELEGRAM_BOT_TOKEN = "7578590641:AAEiftqs1sHKPS2FMNUpODSRkXC_6Yr51Wc"
@@ -17,7 +20,6 @@ ADMIN_CHAT_ID = "1748799133"
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.json')
 LAST_NOTICE_PATH = os.path.join(os.path.dirname(__file__), 'last_notice.json')
 
-# ====== 기본 설정 ======
 default_config = {
     "min_interval": 3,
     "max_interval": 10,
@@ -47,7 +49,6 @@ if not os.path.exists(LAST_NOTICE_PATH):
 with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
     config = json.load(f)
 
-# ====== 에러 쿨다운 ======
 last_error_messages = {}
 ERROR_COOLDOWN_SECONDS = 300
 
@@ -58,7 +59,6 @@ def send_error_once(key, message):
         send_telegram_message(message, chat_id=ADMIN_CHAT_ID)
         last_error_messages[key] = now
 
-# ====== HTTP 요청 ======
 session = requests.Session()
 session.headers.update({
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/115.0.0.0 Safari/537.36",
@@ -78,7 +78,6 @@ def get_with_fallback(url):
         send_error_once("요청실패", f"[요청 예외] {type(e).__name__}: {e}")
         return None
 
-# ====== 텔레그램 메시지 전송 ======
 def send_telegram_message(msg, bot_token=TELEGRAM_BOT_TOKEN, chat_id=TELEGRAM_CHAT_ID):
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     try:
@@ -88,7 +87,6 @@ def send_telegram_message(msg, bot_token=TELEGRAM_BOT_TOKEN, chat_id=TELEGRAM_CH
         print("[텔레그램 전송 오류]", e)
         return False
 
-# ====== 공지 파일 로드 및 저장 ======
 def load_last_notice(path=LAST_NOTICE_PATH):
     try:
         with open(path, 'r', encoding='utf-8') as f:
@@ -159,20 +157,16 @@ def extract_coin_name_from_title(title):
 
 def extract_trade_times(text, html, pattern_type, title="상장코인"):
     try:
-        # 1순위: 연기된 거래지원 개시 시점
         match = re.search(r"연기된 거래지원 개시 시점\s*[:：\-]\s*([^\n]+)", text)
         if match:
             return [{"asset": extract_coin_name_from_title(title), "trade_time": match.group(1).strip()}]
-        # 2순위: 기존 거래지원 개시 시점
         match = re.search(r"기존 거래지원 개시 시점\s*[:：\-]\s*([^\n]+)", text)
         if match:
             return [{"asset": extract_coin_name_from_title(title), "trade_time": match.group(1).strip()}]
-        # 3순위: 일반 거래지원 개시 시점
         pattern = r"거래지원\s*개시\s*시점\s*[:：\-]\s*([^\n]+)"
         match = re.search(pattern, text)
         if match:
             return [{"asset": extract_coin_name_from_title(title), "trade_time": match.group(1).strip()}]
-        # 4순위: 표 추출 (원본 그대로)
         if pattern_type == 1:
             times = extract_all_trade_times_table(html)
             if times:
@@ -190,7 +184,6 @@ def to_naive(dt):
 def is_listing_notice(title, config):
     return any(kw in title for kw in config["listing_keywords"])
 
-# ✅ 반드시 유지할 것!
 def parse_trade_time(trade_time_str):
     now = datetime.now()
     try:
@@ -216,7 +209,6 @@ def parse_trade_time(trade_time_str):
         send_error_once("시간파싱", msg)
     return None
 
-# ✅ 반드시 유지할 것!
 def process_notice_by_id(notice_id):
     last_notice = load_last_notice()
     detail_url = f'https://api-manager.upbit.com/api/v1/announcements/{notice_id}'
@@ -298,20 +290,39 @@ def process_notice_by_id(notice_id):
         "assets": trade_times
     })
 
-# ====== 메인 루프 ======
+# ====== FastAPI 서버 ======
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/latest_notice")
+def latest_notice():
+    try:
+        with open("last_notice.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data
+    except Exception as e:
+        return {"error": str(e)}
+
+def run_api():
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+# ====== 메인 루프 & API 서버 동시 실행 ======
 if __name__ == "__main__":
+    threading.Thread(target=run_api, daemon=True).start()
+
     send_telegram_message("📡 <b>업비트상장공지알림 시작합니다</b>", chat_id=ADMIN_CHAT_ID)
     last_health_check_time = datetime.now()
 
     while True:
         try:
             now = datetime.now()
-            # 밤 8시 59분이 되면 루프를 종료
-            if now.hour == 20 and now.minute == 59:
-                print("지정된 시간(20:59)이 되어 프로그램을 종료합니다.")
-                send_telegram_message("🌙 <b>공지사항 감시봇을 정해진 시간에 종료합니다.</b>", chat_id=ADMIN_CHAT_ID)
-                break
-
             current_time = datetime.now()
             print(f"\n--- [ {current_time.strftime('%Y-%m-%d %H:%M:%S')} ] 루프 시작 ---")
 
@@ -330,7 +341,7 @@ if __name__ == "__main__":
                         notice_id = str(notice['id'])
                         process_notice_by_id(notice_id)
                     else:
-                        print("[정보] تريد 카테고리에 최신 공지가 없습니다.")
+                        print("[정보] 카테고리에 최신 공지가 없습니다.")
                 else:
                     send_error_once("업비트API", f"[업비트 리스트 API 오류] 상태 코드: {res.status_code}")
             else:
