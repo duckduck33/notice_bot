@@ -1,3 +1,5 @@
 requests==2.32.3
 beautifulsoup4==4.13.4
 cloudscraper==1.2.71
+fastapi==0.116.1
+uvicorn==0.35.0
